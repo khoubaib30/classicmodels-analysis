@@ -1,0 +1,22 @@
+__pycache__/
+*.pyc
+.env
+*.env
+*.log
+.vscode/
+.idea/
+
+# Notebooks checkpoints
+.ipynb_checkpoints/
+
+# Données volumineuses ou exports
+data/
+exports/
+*.csv
+*.xlsx
+
+# Fichiers contenant des credentials
+config/*.json
+config/*.ini
+config/*.cfg
+
