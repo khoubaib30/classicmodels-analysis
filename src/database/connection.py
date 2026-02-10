@@ -3,6 +3,11 @@ from typing import Optional
 
 import mysql.connector
 from mysql.connector import pooling
+from dotenv import load_dotenv
+
+
+# Charge automatiquement les variables définies dans un fichier .env (s'il existe).
+load_dotenv()
 
 
 class MySQLConnectionPool:
