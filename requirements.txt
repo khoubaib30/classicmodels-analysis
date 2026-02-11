@@ -8,4 +8,5 @@ seaborn
 plotly
 jupyter
 python-dotenv
+kaleido
 

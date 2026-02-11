@@ -3,6 +3,8 @@ from pathlib import Path
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
+import plotly.express as px
+import plotly.graph_objects as go
 import seaborn as sns
 
 from src.database.connection import fetch_dataframe
@@ -53,7 +55,7 @@ def plot_sales_evolution_monthly() -> None:
     plt.legend()
     plt.tight_layout()
     
-    output_path = VIS_DIR / "part3_sales_evolution_monthly.png"
+    output_path = str(VIS_DIR / "part3_sales_evolution_monthly.png")
     plt.savefig(output_path, dpi=300, bbox_inches='tight')
     plt.close()
 
@@ -90,14 +92,117 @@ def plot_sales_evolution_quarterly() -> None:
     plt.grid(True, alpha=0.3, axis='y', linestyle='--')
     plt.tight_layout()
     
-    output_path = VIS_DIR / "part3_sales_evolution_quarterly.png"
+    output_path = str(VIS_DIR / "part3_sales_evolution_quarterly.png")
     plt.savefig(output_path, dpi=300, bbox_inches='tight')
     plt.close()
+
+
+def plot_geographic_customers() -> None:
+    query = """
+    SELECT 
+        country,
+        COUNT(*) AS nb_clients
+    FROM customers
+    GROUP BY country
+    ORDER BY nb_clients DESC;
+    """
+    
+    df = fetch_dataframe(query)
+    
+    fig = go.Figure(data=go.Choropleth(
+        locations=df['country'],
+        z=df['nb_clients'],
+        locationmode='country names',
+        colorscale='YlOrRd',
+        marker_line_color='darkgray',
+        marker_line_width=0.5,
+        colorbar_title="Nombre de clients",
+        text=df['country'] + '<br>Clients: ' + df['nb_clients'].astype(str),
+        hoverinfo='text'
+    ))
+    
+    fig.update_layout(
+        title={
+            'text': 'Répartition géographique des clients par pays',
+            'x': 0.5,
+            'xanchor': 'center',
+            'font': {'size': 18, 'color': 'black'}
+        },
+        geo=dict(
+            showframe=False,
+            showcoastlines=True,
+            projection_type='natural earth',
+            bgcolor='rgba(240,240,240,0.5)'
+        ),
+        height=700,
+        margin=dict(l=0, r=0, t=50, b=0)
+    )
+    
+    output_path = VIS_DIR / "part3_geographic_customers.html"
+    fig.write_html(str(output_path))
+    try:
+        fig.write_image(str(VIS_DIR / "part3_geographic_customers.png"), width=1400, height=700)
+    except:
+        pass
+
+
+def plot_geographic_sales() -> None:
+    query = """
+    SELECT 
+        c.country,
+        SUM(od.quantityOrdered * od.priceEach) AS total_sales
+    FROM customers c
+    JOIN orders o ON o.customerNumber = c.customerNumber
+    JOIN orderdetails od ON od.orderNumber = o.orderNumber
+    WHERE o.status = 'Shipped'
+    GROUP BY c.country
+    ORDER BY total_sales DESC;
+    """
+    
+    df = fetch_dataframe(query)
+    
+    fig = go.Figure(data=go.Choropleth(
+        locations=df['country'],
+        z=df['total_sales'],
+        locationmode='country names',
+        colorscale='Reds',
+        marker_line_color='darkgray',
+        marker_line_width=0.5,
+        colorbar_title="Chiffre d'affaires ($)",
+        text=df['country'] + '<br>CA: $' + df['total_sales'].apply(lambda x: f'{x:,.0f}'),
+        hoverinfo='text'
+    ))
+    
+    fig.update_layout(
+        title={
+            'text': 'Répartition géographique des ventes par pays',
+            'x': 0.5,
+            'xanchor': 'center',
+            'font': {'size': 18, 'color': 'black'}
+        },
+        geo=dict(
+            showframe=False,
+            showcoastlines=True,
+            projection_type='natural earth',
+            bgcolor='rgba(240,240,240,0.5)'
+        ),
+        height=700,
+        margin=dict(l=0, r=0, t=50, b=0)
+    )
+    
+    output_path = VIS_DIR / "part3_geographic_sales.html"
+    fig.write_html(str(output_path))
+    try:
+        fig.write_image(str(VIS_DIR / "part3_geographic_sales.png"), width=1400, height=700)
+    except:
+        pass
 
 
 def main() -> None:
     plot_sales_evolution_monthly()
     plot_sales_evolution_quarterly()
+    plot_geographic_customers()
+    plot_geographic_sales()
 
 
 if __name__ == "__main__":
