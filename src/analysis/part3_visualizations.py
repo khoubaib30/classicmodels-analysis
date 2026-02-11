@@ -284,6 +284,89 @@ def plot_top10_products() -> None:
     plt.close()
 
 
+def plot_stock_analysis() -> None:
+    SEUIL_ALERTE = 50
+    
+    query = """
+    SELECT 
+        p.productCode,
+        p.productName,
+        p.productLine,
+        p.quantityInStock
+    FROM products p
+    ORDER BY p.quantityInStock ASC;
+    """
+    
+    df = fetch_dataframe(query)
+    
+    df['status'] = df['quantityInStock'].apply(
+        lambda x: 'Rupture' if x == 0 else ('Faible' if x < SEUIL_ALERTE else 'Normal')
+    )
+    
+    fig, (ax1, ax2, ax3) = plt.subplots(1, 3, figsize=(20, 7))
+    
+    colors = {'Rupture': '#DC143C', 'Faible': '#FF8C00', 'Normal': '#32CD32'}
+    
+    status_counts = df['status'].value_counts()
+    status_order = ['Rupture', 'Faible', 'Normal']
+    status_counts = status_counts.reindex([s for s in status_order if s in status_counts.index])
+    
+    ax1.pie(status_counts.values, labels=status_counts.index, autopct='%1.1f%%',
+           colors=[colors.get(s, '#808080') for s in status_counts.index],
+           startangle=90, textprops={'fontsize': 12, 'fontweight': 'bold'},
+           wedgeprops={'edgecolor': 'white', 'linewidth': 2})
+    ax1.set_title('Répartition des stocks\n(Normal, Faible, Rupture)', 
+                 fontsize=14, fontweight='bold', pad=15)
+    
+    df_by_line = df.groupby(['productLine', 'status']).size().unstack(fill_value=0)
+    df_by_line = df_by_line.reindex(columns=['Rupture', 'Faible', 'Normal'], fill_value=0)
+    
+    x = np.arange(len(df_by_line.index))
+    width = 0.25
+    
+    bars1 = ax2.bar(x - width, df_by_line['Rupture'], width, label='Rupture', 
+                   color=colors['Rupture'], alpha=0.9, edgecolor='black', linewidth=1.5)
+    bars2 = ax2.bar(x, df_by_line['Faible'], width, label='Faible', 
+                   color=colors['Faible'], alpha=0.9, edgecolor='black', linewidth=1.5)
+    bars3 = ax2.bar(x + width, df_by_line['Normal'], width, label='Normal', 
+                   color=colors['Normal'], alpha=0.9, edgecolor='black', linewidth=1.5)
+    
+    ax2.set_xlabel('Gamme de produits', fontsize=12, fontweight='bold')
+    ax2.set_ylabel('Nombre de produits', fontsize=12, fontweight='bold')
+    ax2.set_title('Répartition par gamme de produits', fontsize=14, fontweight='bold', pad=15)
+    ax2.set_xticks(x)
+    ax2.set_xticklabels(df_by_line.index, rotation=45, ha='right', fontsize=10)
+    ax2.legend(fontsize=11)
+    ax2.grid(True, alpha=0.3, axis='y', linestyle='--')
+    
+    df_sorted = df.sort_values('quantityInStock').head(5)
+    bar_colors = ['#DC143C' if row['status'] in ['Rupture', 'Faible'] else '#32CD32' 
+                 for _, row in df_sorted.iterrows()]
+    
+    bars = ax3.barh(df_sorted['productName'], df_sorted['quantityInStock'], 
+                   color=bar_colors, alpha=0.9, edgecolor='black', linewidth=1.5)
+    
+    for i, (idx, row) in enumerate(df_sorted.iterrows()):
+        ax3.text(row['quantityInStock'], i, f" {row['quantityInStock']} unités", 
+                va='center', fontsize=10, fontweight='bold')
+    
+    ax3.axvline(x=SEUIL_ALERTE, color='red', linestyle='--', linewidth=2, 
+               alpha=0.7, label=f'Seuil ({SEUIL_ALERTE})')
+    ax3.set_xlabel('Stock disponible', fontsize=12, fontweight='bold')
+    ax3.set_title('5 produits avec le stock le plus faible', fontsize=14, fontweight='bold', pad=15)
+    ax3.grid(True, alpha=0.3, axis='x', linestyle='--')
+    ax3.legend(fontsize=10)
+    
+    fig.suptitle('Analyse de l\'état des stocks avec identification des produits en rupture ou stock faible', 
+                fontsize=16, fontweight='bold', y=1.02)
+    
+    plt.tight_layout()
+    
+    output_path = str(VIS_DIR / "part3_stock_analysis.png")
+    plt.savefig(output_path, dpi=300, bbox_inches='tight')
+    plt.close()
+
+
 def main() -> None:
     plot_sales_evolution_monthly()
     plot_sales_evolution_quarterly()
@@ -291,6 +374,7 @@ def main() -> None:
     plot_geographic_sales()
     plot_sales_by_product_line()
     plot_top10_products()
+    plot_stock_analysis()
 
 
 if __name__ == "__main__":
