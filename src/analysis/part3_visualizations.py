@@ -198,11 +198,99 @@ def plot_geographic_sales() -> None:
         pass
 
 
+def plot_sales_by_product_line() -> None:
+    query = """
+    SELECT 
+        pl.productLine,
+        SUM(od.quantityOrdered * od.priceEach) AS total_sales,
+        COUNT(DISTINCT o.orderNumber) AS nb_commandes,
+        SUM(od.quantityOrdered) AS total_quantity
+    FROM productlines pl
+    JOIN products p ON p.productLine = pl.productLine
+    JOIN orderdetails od ON od.productCode = p.productCode
+    JOIN orders o ON o.orderNumber = od.orderNumber
+    WHERE o.status = 'Shipped'
+    GROUP BY pl.productLine
+    ORDER BY total_sales DESC;
+    """
+    
+    df = fetch_dataframe(query)
+    
+    fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(18, 8))
+    
+    colors = plt.cm.Set3(range(len(df)))
+    bars1 = ax1.barh(df['productLine'], df['total_sales'], color=colors, alpha=0.8, edgecolor='black', linewidth=1.2)
+    
+    for i, (idx, row) in enumerate(df.iterrows()):
+        ax1.text(row['total_sales'], i, f" ${row['total_sales']:,.0f}", 
+                va='center', fontsize=10, fontweight='bold')
+    
+    ax1.set_xlabel('Chiffre d\'affaires ($)', fontsize=12)
+    ax1.set_title('Ventes par gamme de produits (CA)', fontsize=14, fontweight='bold')
+    ax1.grid(True, alpha=0.3, axis='x', linestyle='--')
+    
+    bars2 = ax2.barh(df['productLine'], df['total_quantity'], color=colors, alpha=0.8, edgecolor='black', linewidth=1.2)
+    
+    for i, (idx, row) in enumerate(df.iterrows()):
+        ax2.text(row['total_quantity'], i, f" {row['total_quantity']:,}", 
+                va='center', fontsize=10, fontweight='bold')
+    
+    ax2.set_xlabel('Quantité vendue', fontsize=12)
+    ax2.set_title('Ventes par gamme de produits (Quantité)', fontsize=14, fontweight='bold')
+    ax2.grid(True, alpha=0.3, axis='x', linestyle='--')
+    
+    plt.tight_layout()
+    
+    output_path = str(VIS_DIR / "part3_sales_by_product_line.png")
+    plt.savefig(output_path, dpi=300, bbox_inches='tight')
+    plt.close()
+
+
+def plot_top10_products() -> None:
+    query = """
+    SELECT 
+        p.productCode,
+        p.productName,
+        p.productLine,
+        SUM(od.quantityOrdered) AS total_quantity,
+        SUM(od.quantityOrdered * od.priceEach) AS total_sales
+    FROM products p
+    JOIN orderdetails od ON od.productCode = p.productCode
+    JOIN orders o ON o.orderNumber = od.orderNumber
+    WHERE o.status = 'Shipped'
+    GROUP BY p.productCode, p.productName, p.productLine
+    ORDER BY total_quantity DESC
+    LIMIT 10;
+    """
+    
+    df = fetch_dataframe(query)
+    
+    plt.figure(figsize=(14, 8))
+    colors = plt.cm.viridis(np.linspace(0, 1, len(df)))
+    bars = plt.barh(df['productName'], df['total_quantity'], color=colors, alpha=0.8, edgecolor='black', linewidth=1.2)
+    
+    for i, (idx, row) in enumerate(df.iterrows()):
+        plt.text(row['total_quantity'], i, f" {row['total_quantity']:,} unités", 
+                va='center', fontsize=9, fontweight='bold')
+    
+    plt.xlabel('Quantité vendue', fontsize=12)
+    plt.ylabel('Produit', fontsize=12)
+    plt.title('Top 10 produits les plus vendus (en quantité)', fontsize=16, fontweight='bold', pad=20)
+    plt.grid(True, alpha=0.3, axis='x', linestyle='--')
+    plt.tight_layout()
+    
+    output_path = str(VIS_DIR / "part3_top10_products.png")
+    plt.savefig(output_path, dpi=300, bbox_inches='tight')
+    plt.close()
+
+
 def main() -> None:
     plot_sales_evolution_monthly()
     plot_sales_evolution_quarterly()
     plot_geographic_customers()
     plot_geographic_sales()
+    plot_sales_by_product_line()
+    plot_top10_products()
 
 
 if __name__ == "__main__":
