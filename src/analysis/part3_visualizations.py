@@ -367,6 +367,68 @@ def plot_stock_analysis() -> None:
     plt.close()
 
 
+def plot_revenue_by_customers() -> None:
+    query = """
+    SELECT 
+        c.customerNumber,
+        c.customerName,
+        SUM(od.quantityOrdered * od.priceEach) AS total_revenue
+    FROM customers c
+    JOIN orders o ON o.customerNumber = c.customerNumber
+    JOIN orderdetails od ON od.orderNumber = o.orderNumber
+    WHERE o.status = 'Shipped'
+    GROUP BY c.customerNumber, c.customerName
+    ORDER BY total_revenue DESC;
+    """
+    
+    df = fetch_dataframe(query)
+    
+    top_n = 10
+    df_top = df.head(top_n)
+    revenue_top = df_top['total_revenue'].sum()
+    revenue_others = df.iloc[top_n:]['total_revenue'].sum()
+    
+    fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(18, 8))
+    
+    categories = ['Top 10 clients', 'Autres clients']
+    revenues = [revenue_top, revenue_others]
+    colors_pie = ['#FF6B6B', '#4ECDC4']
+    
+    wedges, texts, autotexts = ax1.pie(revenues, labels=categories, autopct='%1.1f%%',
+                                       colors=colors_pie, startangle=90,
+                                       textprops={'fontsize': 12, 'fontweight': 'bold'},
+                                       wedgeprops={'edgecolor': 'white', 'linewidth': 3})
+    
+    for autotext in autotexts:
+        autotext.set_color('white')
+        autotext.set_fontweight('bold')
+    
+    ax1.set_title('Répartition du chiffre d\'affaires\n(Top 10 vs Autres)', 
+                 fontsize=14, fontweight='bold', pad=20)
+    
+    total_revenue = revenue_top + revenue_others
+    ax1.text(0, -1.3, f'Total CA: ${total_revenue:,.0f}\nTop 10: ${revenue_top:,.0f} ({revenue_top/total_revenue*100:.1f}%)\nAutres: ${revenue_others:,.0f} ({revenue_others/total_revenue*100:.1f}%)',
+            ha='center', va='center', fontsize=11, fontweight='bold',
+            bbox=dict(boxstyle='round', facecolor='#f0f0f0', alpha=0.8, edgecolor='black', linewidth=2))
+    
+    bars = ax2.barh(df_top['customerName'], df_top['total_revenue'], 
+                   color='#FF6B6B', alpha=0.9, edgecolor='black', linewidth=1.5)
+    
+    for i, (idx, row) in enumerate(df_top.iterrows()):
+        ax2.text(row['total_revenue'], i, f" ${row['total_revenue']:,.0f}", 
+                va='center', fontsize=10, fontweight='bold')
+    
+    ax2.set_xlabel('Chiffre d\'affaires ($)', fontsize=12, fontweight='bold')
+    ax2.set_title('Top 10 clients par chiffre d\'affaires', fontsize=14, fontweight='bold', pad=15)
+    ax2.grid(True, alpha=0.3, axis='x', linestyle='--')
+    
+    plt.tight_layout()
+    
+    output_path = str(VIS_DIR / "part3_revenue_by_customers.png")
+    plt.savefig(output_path, dpi=300, bbox_inches='tight')
+    plt.close()
+
+
 def main() -> None:
     plot_sales_evolution_monthly()
     plot_sales_evolution_quarterly()
@@ -375,6 +437,7 @@ def main() -> None:
     plot_sales_by_product_line()
     plot_top10_products()
     plot_stock_analysis()
+    plot_revenue_by_customers()
 
 
 if __name__ == "__main__":
