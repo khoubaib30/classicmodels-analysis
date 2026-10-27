@@ -2,6 +2,25 @@
 
 Ce dépôt contient un projet d'analyse de la base MySQL **ClassicModels** en SQL et Python.
 
+### Ce que montre le projet
+
+**SQL (MySQL)**
+
+- Analyse exploratoire et requêtes avancées : jointures multiples, agrégations, CTE et fonctions de fenêtre (`OVER`)
+- 2 procédures stockées (`CalculateEmployeeCommission`, `ManageStock`), 1 fonction (`CustomerLifetimeValue`) et 5 triggers (journal d'audit des commandes, contrôle du stock avant commande, mise à jour du statut client)
+
+**Analyses Python (Pandas, Matplotlib, Seaborn)**
+
+| Analyse | Résultat principal |
+|---|---|
+| Segmentation RFM des 98 clients actifs | 13 VIP, 36 réguliers, 25 à risque, 24 perdus |
+| Panier moyen (303 commandes livrées) | 29 258 $ en moyenne (médiane 30 254 $) ; 1 846 paires de produits achetés ensemble identifiées pour le cross-selling |
+| Performance des 17 commerciaux | Les 2 meilleurs vendeurs dépassent chacun 1 M$ de chiffre d'affaires |
+| Tendances temporelles (janvier 2003 – mai 2005) | Croissance d'environ 7 200 $ de chiffre d'affaires par mois sur 29 mois |
+| Corrélations | Relations entre prix, quantités vendues, délais de livraison et montants de commande |
+
+Les visualisations sont dans `visualizations/` et le rapport complet dans `projet_classicmodels.pdf`.
+
 ### 1. Pré-requis
 
 - MySQL Server et MySQL Workbench installés
@@ -44,7 +63,8 @@ Dans un terminal ouvert à la racine du projet :
 
 ```bash
 python -m venv .venv
-.venv\Scripts\activate  
+.venv\Scripts\activate        # Windows
+# source .venv/bin/activate     # Linux/Mac
 pip install -r requirements.txt
 ```
 
